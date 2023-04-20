@@ -1,2 +1,2 @@
 # scala-quill
-springboot scala, quill and cassandra db
+springboot scala, quill, cassandra db with working test
