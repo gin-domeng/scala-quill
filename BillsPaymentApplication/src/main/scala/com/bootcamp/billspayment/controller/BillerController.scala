@@ -1,44 +1,47 @@
 package com.bootcamp.billspayment.controller
 
-import com.bootcamp.billspayment.repos.BillerDAO
+import com.bootcamp.billspayment.quill.QuillContext
+import com.bootcamp.billspayment.repos.{BillerDAO, BillerRepository}
 import com.bootcamp.billspayment.repos.domain.Biller
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.{GetMapping, PostMapping, RequestBody, RestController}
+import org.springframework.web.bind.annotation._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 @RestController
 class BillerController {
 
+  private val logger = LoggerFactory.getLogger(classOf[BillerController])
+
   @Autowired
-  private val billerService : BillerDAO = null
+  private val quillContext : QuillContext = null
+
+  @Autowired
+  private val billerService: BillerDAO = null
 
   @PostMapping(path = Array("/biller"))
   def addBiller(@RequestBody biller: Biller): ResponseEntity[String] = {
 
+    logger.info(">>>>>> SESSION ON PORT " + quillContext.session.getKeyspace )
     billerService.upsertBiller(biller)
 
     ResponseEntity.ok("DONE")
   }
 
   @GetMapping(path = Array("/billers"))
-  def getAllBillers(): Unit = {
+  def getAllBillers(): ResponseEntity[Future[List[Biller]]] = {
+    ResponseEntity.ok(billerService.findBillers())
+  }
 
-   /* val billers = .map(_.toList)
+  @GetMapping(path = Array("/biller/{code}"))
+  def getBillerByCode(@PathVariable("code") code: String): ResponseEntity[Option[Biller]] = {
 
-    val billers: List[Biller] =
-      for{ data <- billerService.findBillers()
-           entities <- data.toList}
-      yield  entities
-*/
+    val result = Await.result(billerService.findBillerByCode(code), Duration.fromNanos(100000000))
 
-      billerService.findBillers().onComplete {
-      case Success(data) => ResponseEntity.ok(data.toList)
-      case Failure(t) => ResponseEntity.ok(t.getLocalizedMessage)
-    }
-
+    ResponseEntity.ok(result)
 
   }
 

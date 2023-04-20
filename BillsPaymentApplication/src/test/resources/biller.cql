@@ -8,4 +8,4 @@ CREATE TABLE biller (id UUID,
 
 
 INSERT INTO biller(id, code, short_name, full_name, enabled, status)
-     VALUES (uuid(), 'PLDT', 'PLDT', 'PHILIPPINE LONG DISTANCE ...', true, 'ACTIVE');
+     VALUES (uuid(), 'NAWASA', 'NAWASA', 'NAWASA WATER', true, 'ACTIVE');
