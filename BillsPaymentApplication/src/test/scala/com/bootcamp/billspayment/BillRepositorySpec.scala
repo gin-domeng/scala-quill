@@ -1,78 +1,76 @@
 package com.bootcamp.billspayment
 
-import com.bootcamp.billspayment.cassandra.{CassandraTestContext, TestDBConfig}
-import com.bootcamp.billspayment.configurable.ConfigQuillContext
+import com.bootcamp.billspayment.cassandra.CassandraTestContext
+import com.bootcamp.billspayment.repos.domain.Biller
 import com.bootcamp.billspayment.repos.{BillerDAO, BillerRepository}
-import io.getquill.{CassandraAsyncContext, SnakeCase}
 import org.cassandraunit.CQLDataLoader
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet
-import org.hamcrest.CoreMatchers.is
-import org.hamcrest.MatcherAssert.assertThat
 import org.junit.runner.RunWith
-import org.mockito.junit.MockitoJUnitRunner
 import org.scalatest._
-import org.scalatest.flatspec.{AnyFlatSpec, AsyncFlatSpec}
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.flatspec.AsyncFlatSpec
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.{SpringBootTest, TestConfiguration}
-import org.springframework.context.annotation.{Bean, Configuration, Import, Primary}
-import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit4.SpringRunner
 
-//FUTURE REF with AsyncFlatSpec
+import java.util.UUID
 
-
-//@Import(Array(classOf[TestDBConfig]))
-/*@SpringBootTest(classes = Array(classOf[BillsPaymentApplication]),
-  webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(classes = Array(classOf[TestDBConfig]))*/
 @RunWith(classOf[SpringRunner])
-//@SpringBootTest
 class BillRepositorySpec extends AsyncFlatSpec with BeforeAndAfter {
 
-  var tstContext = new CassandraTestContext()
+  val tstContext = new CassandraTestContext()
+  val biller = Biller(UUID.randomUUID(), "Meralco", "Meralco", "Meralco ....", true, "ACTIVE")
 
   @Autowired
   val billerRepository: BillerDAO = new BillerRepository(tstContext)
 
   before {
-
     new CQLDataLoader(tstContext.testSession).load(new ClassPathCQLDataSet("biller.cql", "billspayment"))
-    //billerRepository = new BillerRepository (tstContext)
   }
 
-  // RUNS on Test Session
-  /*"Biller Records" should "return 1 Biller" in {
-    val result = tstContext.testSession.execute("select * from biller WHERE code='NAWASA' ALLOW FILTERING")
-    assertThat(result.iterator.next.getString("short_name"), is("NAWASA"))
-  }*/
+  "Biller Repository Records" should "Insert a Biller" in {
 
-  //RUNGS on Local Database
-  "Biller Repository Records" should "return 1 Biller" in {
-//    billerRepository.upsertBiller(Biller(UUID.randomUUID(), "Meralco", "Meralco", "Meralco ....", true, "ACTIVE"))
+    billerRepository.upsertBiller(biller)
+
+    val result = billerRepository.findBillerByCode("Meralco")
+    val code = result.map(data => data.get.code)
+
+    code map { field => assert(field.toString == "Meralco") }
+  }
+
+  "Biller Repository Records" should "Return a Biller" in {
 
     val result = billerRepository.findBillerByCode("NAWASA")
+    val code = result.map(data => data.get.code)
 
-    /*for{
-      entity <- result
-
-    }println("BUMP " + entity.get)
-
-    result map { biller => assert(biller.get.code == "PLDT") }
-*/
-
-    val code = result.map(biller => biller.get.code)
-    //println(">>>> " + code.get.toString)
-    //assertThat(code.get.toString, is("NAWASA"))
-    code map { entity => assert(entity.toString == "NAWASA") }
-
+    code map { field => assert(field == "NAWASA") }
   }
 
+  "Biller Repository Records" should "Update a Biller" in {
 
-  /*@TestConfiguration class ConfigDB {
-    @Bean
-    @Primary
-    def configImplQuillContext: ConfigQuillContext = new CassandraTestContext
+    val updateBiller = biller.copy(enabled = false)
+
+    billerRepository.upsertBiller(updateBiller)
+
+    val result = billerRepository.findBillerByCode("Meralco")
+    val code = result.map(data => data.get.enabled)
+
+    code map { field => assert(field == false) }
+  }
+
+  /* Flaky since test ran in random sometimes it gets the right num of records
+  "Biller Repository Records" should "Should Have 2-3 Billers but its @Flaky" in {
+    billerRepository.upsertBiller(biller)
+    val billers = billerRepository.findBillers()
+
+    billers map { billers => assert(billers.count(x => true) == 2) }
+
   }*/
+
+  "Biller Repository Records" should "Find by UUID" in {
+
+    val billers = billerRepository.findBillerById(UUID.fromString("e6b42b29-2411-4fc7-800d-2ee553579b41"))
+
+    billers map { billers => assert(billers.count(x => true) == 1) }
+
+  }
 }
 
